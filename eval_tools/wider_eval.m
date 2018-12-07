@@ -18,7 +18,7 @@ setting_name_list = {'easy_val';'medium_val';'hard_val'};
 setting_class = 'setting_int';
 
 %Please specify your algorithm name.
-legend_name = 'Faceness';
+legend_name = 'Fast R-CNN';
 for i = 1:size(setting_name_list,1)
     fprintf('Current evaluation setting %s\n',setting_name_list{i});
     setting_name = setting_name_list{i};
@@ -28,6 +28,11 @@ end
 
 fprintf('Plot pr curve under overall setting.\n');
 dateset_class = 'Val';
+
+% Scenario-Int: A face detector is trained using WIDER FACE training/validation partitions, 
+% and tested on WIDER FACE test partition.
+% Scenario-Ext: A face detector is trained using any external data, 
+% and tested on the WIDER FACE test partition.
 
 % scenario-Int:
 seting_class = 'int';
