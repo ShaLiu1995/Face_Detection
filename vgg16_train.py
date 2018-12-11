@@ -19,6 +19,7 @@ class vgg16:
         self.imgs = imgs
         self.convlayers()
         self.fc_layers()
+        self.middle = self.pool5
         self.probs = tf.nn.softmax(self.fc3l)
         if weights is not None and sess is not None:
             self.load_weights(weights, sess)
@@ -260,8 +261,10 @@ if __name__ == '__main__':
     img1 = imread('test.jpg', mode='RGB')
     img1 = imresize(img1, (224, 224))
 
-    prob = sess.run(vgg.probs, feed_dict={vgg.imgs: [img1]})[0]
-    preds = (np.argsort(prob)[::-1])[0:5]
-    for p in preds:
-        print(class_names[p], prob[p])
+    # prob = sess.run(vgg.probs, feed_dict={vgg.imgs: [img1]})[0]
+    # preds = (np.argsort(prob)[::-1])[0:5]
+    # for p in preds:
+    #     print(class_names[p], prob[p])
 
+    feature = sess.run(vgg.middle, feed_dict={vgg.imgs: [img1]})[0]
+    print(feature)
