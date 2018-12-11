@@ -39,7 +39,9 @@ for i in range(EVENT_NUM):
         img_path = os.path.join(TRAIN_DIR, event, filename + '.jpg')
         logging.debug('Path: {}'.format(img_path))
         logging.debug('BBox: {}'.format(str(bbx)))
+
         xtrain.append(imread(img_path))
+        logging.debug('Image Size: {}\n'.format(xtrain[len(xtrain) - 1].shape))
         ltrain_bbx.append(bbx)
 
 
