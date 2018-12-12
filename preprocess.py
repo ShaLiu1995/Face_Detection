@@ -29,7 +29,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     TRAIN_DIR = os.path.join('WIDER_train', 'images')
-    NEW_IMG_DIR = 'resized_data'
+    NEW_IMG_DIR = 'resized_img'
     LABEL_DIR = 'wider_face_split'
     LTRAIN_FILE = 'wider_face_train.mat'
     LVALID_FILE = 'wider_face_val.mat'

@@ -10,6 +10,9 @@
 
 import tensorflow as tf
 import numpy as np
+import os
+import json
+import csv
 from scipy.misc import imread, imresize
 from imagenet_classes import class_names
 
@@ -254,17 +257,30 @@ class vgg16:
 
 
 if __name__ == '__main__':
-    sess = tf.Session()
-    imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
-    vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
-    img1 = imread('test.jpg', mode='RGB')
-    img1 = imresize(img1, (224, 224))
+    IMAGE_DIR = 'resized_img_10'
+    BBX_FILE = 'bbx_dict.json'
 
-    # prob = sess.run(vgg.probs, feed_dict={vgg.imgs: [img1]})[0]
-    # preds = (np.argsort(prob)[::-1])[0:5]
-    # for p in preds:
-    #     print(class_names[p], prob[p])
+    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+        imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
+        vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
-    feature = sess.run(vgg.middle, feed_dict={vgg.imgs: [img1]})[0]
-    print(feature)
+        file_list = []
+        img_list = []
+        for file in os.listdir(IMAGE_DIR):
+            img = imread(os.path.join(IMAGE_DIR, file), mode='RGB')
+            img_list.append(img)
+            filename = file.split('.')[0]
+            file_list.append(filename)
+
+        feature = sess.run(vgg.middle, feed_dict={vgg.imgs: img_list})
+        dim = feature.shape
+        feature_list = np.reshape(feature, (dim[0], dim[1] * dim[2] * dim[3])).tolist()
+
+    with open(BBX_FILE) as json_data:
+        bbx_dict = json.load(json_data)
+
+    with open('train_data.csv', 'w', newline='') as write_file:
+        writer = csv.writer(write_file)
+        for i in range(len(file_list)):
+            writer.writerow((file_list[i], bbx_dict[file_list[i]], feature_list[i]))
