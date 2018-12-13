@@ -270,54 +270,22 @@ class vgg16:
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
-    IMAGE_DIR = 'resized_img'
-    BBX_FILE = 'bbx_dict.json'
-    BATCH_SIZE = 50
+    IMAGE_DIR = 'prof_img'
+    file = 'prof.png'
 
-    with open(BBX_FILE) as json_data:
-        bbx_dict = json.load(json_data)
-
-    with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
-#     with tf.Session() as sess:
+    # with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
+    with tf.Session() as sess:
         imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
         vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
-        file_list = os.listdir(IMAGE_DIR)
-        file_num = len(file_list)
-        batch_num = int(file_num / BATCH_SIZE)
+        print(file)
+        img = imread(os.path.join(IMAGE_DIR, file), mode='RGB')
+        print(img.shape)
+        img = imresize(img, (224, 224))
 
-        feature_list = []
-        bbx_array = np.empty((0, 4), dtype=np.int)
-        feature_array = np.empty((0, 25088), dtype=np.float32)
-        for i in range(batch_num):
-            img_list = []
-            for j in range(BATCH_SIZE):
-                # logging.debug('Batch No. {0}, image No. {1}'.format(i, j))
-                idx = i * BATCH_SIZE + j
-                if idx > file_num:
-                    break
+        feature = sess.run(vgg.middle, feed_dict={vgg.imgs: [img]})
+        dim = feature.shape
+        feature_array = np.reshape(feature, (dim[0], dim[1] * dim[2] * dim[3]))
 
-                file = file_list[idx]
-                img = imread(os.path.join(IMAGE_DIR, file), mode='RGB')
-                img_list.append(img)
-
-                filename = file_list[i * BATCH_SIZE + j].split('.')[0]
-                bbx = np.array(np.array(bbx_dict[filename])).reshape(1, -1)
-                bbx_array = np.append(bbx_array, bbx, axis=0)
-
-            feature = sess.run(vgg.middle, feed_dict={vgg.imgs: img_list})
-            dim = feature.shape
-            feature = np.reshape(feature, (dim[0], dim[1] * dim[2] * dim[3]))
-            feature_array = np.append(feature_array, feature, axis=0)
-
-            logging.debug('Batch No. {}'.format(i))
-
-            # for k in range(len(feature_list)):
-            #     filename = file_list[i * BATCH_SIZE + k].split('.')[0]
-            #     logging.debug('{0} : {1}'.format(filename, bbx_dict[filename]))
-            #     writer.writerow((filename, bbx_dict[filename], feature_list[k]))
-
-    print(bbx_array.shape)
     print(feature_array.shape)
-    bbx_array.tofile('bbx_array.bin')
-    feature_array.tofile('feature_array.bin')
+    feature_array.tofile('prof_feature_array.bin')
