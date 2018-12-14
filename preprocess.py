@@ -1,3 +1,7 @@
+"""
+Do not run this program on ieng6 since the original images are not uploaded,
+Instead, run at local machine and upload bbx_dict.json and resized_img to ieng6 server.
+"""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -7,10 +11,10 @@ from scipy.misc import imread, imresize, imsave
 import os
 import logging
 import json
+import random
 import cv2
 import shutil
 
-IMG_SIZE = 224
 EVENT_NUM = 61
 
 
@@ -18,10 +22,10 @@ def resize_bbx(img, bbox):
     height = img.shape[0]
     width = img.shape[1]
     new_bbox = [0] * 4
-    new_bbox[0] = int(IMG_SIZE * bbox[0][0][0] / width)
-    new_bbox[1] = int(IMG_SIZE * bbox[0][0][1] / height)
-    new_bbox[2] = int(IMG_SIZE * bbox[0][0][2] / width)
-    new_bbox[3] = int(IMG_SIZE * bbox[0][0][3] / height)
+    new_bbox[0] = int(224 * bbox[0][0][0] / width)
+    new_bbox[1] = int(224 * bbox[0][0][1] / height)
+    new_bbox[2] = int(224 * bbox[0][0][2] / width)
+    new_bbox[3] = int(224 * bbox[0][0][3] / height)
     return new_bbox
 
 
@@ -29,11 +33,15 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     TRAIN_DIR = os.path.join('WIDER_train', 'images')
-    NEW_IMG_DIR = 'resized_img'
+    NEW_IMG_DIR = 'resized_img_shuffled'
     LABEL_DIR = 'wider_face_split'
     LTRAIN_FILE = 'wider_face_train.mat'
     LVALID_FILE = 'wider_face_val.mat'
     LTEST_FILE = 'wider_face_test.mat'
+    EXTENSION = '.jpg'
+
+    if not os.path.isdir(NEW_IMG_DIR):
+        os.mkdir(NEW_IMG_DIR)
 
     ltrain_mat = loadmat(os.path.join(LABEL_DIR, LTRAIN_FILE))
     # lvalid = loadmat(os.path.join(LABEL_DIR, LVALID_FILE))
@@ -42,37 +50,50 @@ if __name__ == '__main__':
     ltrain_bbx_list = ltrain_mat['face_bbx_list']
     ltrain_event_list = ltrain_mat['event_list']
     ltrain_file_list = ltrain_mat['file_list']
-    bbx_dict = {}
+
+    bbx_path_dict = {}
+    bbx_idx_dict = {}
+    img_path_list = []
 
     for i in range(EVENT_NUM):
         event = ltrain_event_list[i][0][0]
         for j in range(len(ltrain_bbx_list[i][0])):
             bbx = ltrain_bbx_list[i][0][j]
             num_of_faces = bbx[0].shape[0]
-            if num_of_faces > 1:
+            if num_of_faces != 1:
                 continue
-            filename = ltrain_file_list[i][0][j][0][0]
-            img_path = os.path.join(TRAIN_DIR, event, filename + '.jpg')
-            img = imread(img_path)
+            filename = ltrain_file_list[i][0][j][0][0] + EXTENSION
+            img_path = os.path.join(TRAIN_DIR, event, filename)
+            img_path_list.append(img_path)
+            bbx_path_dict[img_path] = bbx
 
-            # Plot bbx with original image
-            # cv2.rectangle(img, (bbx[0][0][0], bbx[0][0][1]),
-            #               (bbx[0][0][0] + bbx[0][0][2], bbx[0][0][1] + bbx[0][0][3]),
-            #           (255, 0, 0), 2)
-            # imsave(os.path.join(NEW_IMG_DIR, filename + '.jpg'), img)
+    random.shuffle(img_path_list)
+    for j in range(len(img_path_list)):
+        img_path = img_path_list[j]
+        img = imread(img_path, mode='RGB')
+        bbx = bbx_path_dict[img_path]
 
-            new_img = imresize(img, (224, 224))
-            new_bbx = resize_bbx(img, bbx)
-            # cv2.rectangle(new_img, (new_bbx[0], new_bbx[1]),
-            #               (new_bbx[0] + new_bbx[2], new_bbx[1] + new_bbx[3]), (255, 0, 0), 2)
-            imsave(os.path.join(NEW_IMG_DIR, filename + '.jpg'), new_img)
-            bbx_dict[filename] = new_bbx
+        # Plot bbx with original image
+        # cv2.rectangle(img, (bbx[0][0][0], bbx[0][0][1]),
+        #               (bbx[0][0][0] + bbx[0][0][2], bbx[0][0][1] + bbx[0][0][3]),
+        #           (255, 0, 0), 2)
+        # imsave(os.path.join(NEW_IMG_DIR, filename + '.jpg'), img)
 
-            logging.debug('Image Size: {}\n'.format(img.shape))
-            logging.debug('Path: {}'.format(img_path))
-            logging.debug('BBox: {}'.format(str(bbx)))
+        new_bbx = resize_bbx(img, bbx)
+        new_img = imresize(img, (224, 224))
 
-    print(len(bbx_dict))
-    with open('bbx_dict.json', 'w') as fp:
-        json.dump(bbx_dict, fp)
+        # cv2.rectangle(new_img, (new_bbx[0], new_bbx[1]),
+        #               (new_bbx[0] + new_bbx[2], new_bbx[1] + new_bbx[3]), (255, 0, 0), 2)
+
+        filename = str(j).zfill(5) + EXTENSION
+        imsave(os.path.join(NEW_IMG_DIR, filename), new_img)
+        bbx_idx_dict[filename] = new_bbx
+
+        logging.debug('Image Size: {}\n'.format(img.shape))
+        logging.debug('Path: {}'.format(img_path))
+        logging.debug('BBox: {}'.format(str(new_bbx)))
+
+    print(len(bbx_idx_dict))
+    with open('bbx_idx_dict.json', 'w') as fp:
+        json.dump(bbx_idx_dict, fp)
 
