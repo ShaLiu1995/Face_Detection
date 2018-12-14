@@ -10,7 +10,7 @@ def flip_img(old_dir, flip):
     if not os.path.isdir(new_dir):
         os.mkdir(new_dir)
     file_list = os.listdir(old_dir)
-    for file in file_list[:5]:
+    for file in file_list:
         img = imread(os.path.join(old_dir, file), mode='RGB')
         img = img.copy()
         # 0: ud, 1: lr
@@ -29,8 +29,8 @@ def flip_img(old_dir, flip):
         old_bbx = bbx_dict[file]
         new_bbx = flip_bbx(old_bbx, flag=flag)
         img = img.copy()
-        cv2.rectangle(img, (new_bbx[0], new_bbx[1]),
-                      (new_bbx[0] + new_bbx[2], new_bbx[1] + new_bbx[3]), (255, 0, 0), 2)
+#         cv2.rectangle(img, (new_bbx[0], new_bbx[1]),
+#                       (new_bbx[0] + new_bbx[2], new_bbx[1] + new_bbx[3]), (255, 0, 0), 2)
         imsave(os.path.join(new_dir, file), img)
 
     print('Finish flipping task {}'.format(flip))
@@ -52,10 +52,10 @@ def flip_bbx(old_bbx, flag=0):
 
 if __name__ == '__main__':
 
-    with open('bbx_dict.json') as json_data:
+    with open('bbx_idx_dict.json') as json_data:
         bbx_dict = json.load(json_data)
 
-    old_dir = 'resized_img'
+    old_dir = 'resized_img_shuffled'
     flip_img(old_dir, 'ud')
     flip_img(old_dir, 'lr')
     flip_img(old_dir, 'udlr')

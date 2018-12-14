@@ -15,7 +15,7 @@ import json
 import csv
 import logging
 from scipy.misc import imread, imresize
-from flip_data import flip_bbx
+from imagenet_classes import class_names
 
 
 class vgg16:
@@ -34,7 +34,7 @@ class vgg16:
         # zero-mean input
         with tf.name_scope('preprocess') as scope:
             mean = tf.constant([123.68, 116.779, 103.939], dtype=tf.float32, shape=[1, 1, 1, 3], name='img_mean')
-            images = self.imgs - mean
+            images = self.imgs-mean
 
         # conv1_1
         with tf.name_scope('conv1_1') as scope:
@@ -60,10 +60,10 @@ class vgg16:
 
         # pool1
         self.pool1 = tf.nn.max_pool(self.conv1_2,
-                                    ksize=[1, 2, 2, 1],
-                                    strides=[1, 2, 2, 1],
-                                    padding='SAME',
-                                    name='pool1')
+                               ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
+                               padding='SAME',
+                               name='pool1')
 
         # conv2_1
         with tf.name_scope('conv2_1') as scope:
@@ -89,10 +89,10 @@ class vgg16:
 
         # pool2
         self.pool2 = tf.nn.max_pool(self.conv2_2,
-                                    ksize=[1, 2, 2, 1],
-                                    strides=[1, 2, 2, 1],
-                                    padding='SAME',
-                                    name='pool2')
+                               ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
+                               padding='SAME',
+                               name='pool2')
 
         # conv3_1
         with tf.name_scope('conv3_1') as scope:
@@ -129,10 +129,10 @@ class vgg16:
 
         # pool3
         self.pool3 = tf.nn.max_pool(self.conv3_3,
-                                    ksize=[1, 2, 2, 1],
-                                    strides=[1, 2, 2, 1],
-                                    padding='SAME',
-                                    name='pool3')
+                               ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
+                               padding='SAME',
+                               name='pool3')
 
         # conv4_1
         with tf.name_scope('conv4_1') as scope:
@@ -169,10 +169,10 @@ class vgg16:
 
         # pool4
         self.pool4 = tf.nn.max_pool(self.conv4_3,
-                                    ksize=[1, 2, 2, 1],
-                                    strides=[1, 2, 2, 1],
-                                    padding='SAME',
-                                    name='pool4')
+                               ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
+                               padding='SAME',
+                               name='pool4')
 
         # conv5_1
         with tf.name_scope('conv5_1') as scope:
@@ -209,20 +209,20 @@ class vgg16:
 
         # pool5
         self.pool5 = tf.nn.max_pool(self.conv5_3,
-                                    ksize=[1, 2, 2, 1],
-                                    strides=[1, 2, 2, 1],
-                                    padding='SAME',
-                                    name='pool4')
+                               ksize=[1, 2, 2, 1],
+                               strides=[1, 2, 2, 1],
+                               padding='SAME',
+                               name='pool4')
 
     def fc_layers(self):
         # fc1
         with tf.name_scope('fc1') as scope:
             shape = int(np.prod(self.pool5.get_shape()[1:]))
             fc1w = tf.Variable(tf.truncated_normal([shape, 4096],
-                                                   dtype=tf.float32,
-                                                   stddev=1e-1), name='weights')
+                                                         dtype=tf.float32,
+                                                         stddev=1e-1), name='weights')
             fc1b = tf.Variable(tf.constant(1.0, shape=[4096], dtype=tf.float32),
-                               trainable=True, name='biases')
+                                 trainable=True, name='biases')
             pool5_flat = tf.reshape(self.pool5, [-1, shape])
             fc1l = tf.nn.bias_add(tf.matmul(pool5_flat, fc1w), fc1b)
             self.fc1 = tf.nn.relu(fc1l)
@@ -231,10 +231,10 @@ class vgg16:
         # fc2
         with tf.name_scope('fc2') as scope:
             fc2w = tf.Variable(tf.truncated_normal([4096, 4096],
-                                                   dtype=tf.float32,
-                                                   stddev=1e-1), name='weights')
+                                                         dtype=tf.float32,
+                                                         stddev=1e-1), name='weights')
             fc2b = tf.Variable(tf.constant(1.0, shape=[4096], dtype=tf.float32),
-                               trainable=True, name='biases')
+                                 trainable=True, name='biases')
             fc2l = tf.nn.bias_add(tf.matmul(self.fc1, fc2w), fc2b)
             self.fc2 = tf.nn.relu(fc2l)
             self.parameters += [fc2w, fc2b]
@@ -242,10 +242,10 @@ class vgg16:
         # fc3
         with tf.name_scope('fc3') as scope:
             fc3w = tf.Variable(tf.truncated_normal([4096, 1000],
-                                                   dtype=tf.float32,
-                                                   stddev=1e-1), name='weights')
+                                                         dtype=tf.float32,
+                                                         stddev=1e-1), name='weights')
             fc3b = tf.Variable(tf.constant(1.0, shape=[1000], dtype=tf.float32),
-                               trainable=True, name='biases')
+                                 trainable=True, name='biases')
             self.fc3l = tf.nn.bias_add(tf.matmul(self.fc2, fc3w), fc3b)
             self.parameters += [fc3w, fc3b]
 
@@ -259,49 +259,49 @@ class vgg16:
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    image_dir_list = ['resized_img_shuffled', 
-                      'resized_img_shuffled_ud', 
-                      'resized_img_shuffled_lr',
-                      'resized_img_shuffled_udlr']
+
+    IMAGE_DIR = 'resized_img'
+    BBX_FILE = 'bbx_dict.json'
     BATCH_SIZE = 50
 
-    with open('bbx_idx_dict.json') as json_data:
+    with open(BBX_FILE) as json_data:
         bbx_dict = json.load(json_data)
 
     with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
         vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
-        bbx_array = np.empty((0, 4), dtype=np.int64)
-        feature_array = np.empty((0, 25088), dtype=np.float32)
-        
-        for k in range(len(image_dir_list)):
-            image_dir = image_dir_list[k]        
-            file_list = os.listdir(image_dir)
-            file_num = len(file_list)
-            batch_num = int(file_num / BATCH_SIZE)
-            print('{0} image(s), {1} batch(es)'.format(file_num, batch_num))
-              
-            for i in range(batch_num):
-                logging.debug('Reading folder No.{0}, batch No.{1}'.format(k+1, i+1))
-                img_batch_list = []
-                for j in range(BATCH_SIZE):
-                    # logging.debug('Batch No. {0}, image No. {1}'.format(i, j))
-                    idx = i * BATCH_SIZE + j
-                    file = file_list[idx]
-    
-                    img = imread(os.path.join(image_dir, file), mode='RGB')
-                    img_batch_list.append(img)
-    
-                    bbx = np.array(np.array(bbx_dict[file])).reshape(1, -1)
-                    bbx[0] = flip_bbx(bbx[0], flag=k)
-                    bbx_array = np.append(bbx_array, bbx, axis=0)
-    
-                feature = sess.run(vgg.middle, feed_dict={vgg.imgs: img_batch_list})
-                feature = feature.reshape(feature.shape[0], -1)
-                feature_array = np.append(feature_array, feature, axis=0)
+        file_list = os.listdir(IMAGE_DIR)
+        file_num = len(file_list)
+        batch_num = int(file_num / BATCH_SIZE)
+        logging.info('{0} image(s), {1} batch(es)'.format(file_num, batch_num))
 
-    print('Bounding box array shape: {}'.format(bbx_array.shape))
-    print('Feature array shape: {}'.format(feature_array.shape))
+        feature_list = []
+        bbx_array = np.empty((0, 4), dtype=np.int)
+        feature_array = np.empty((0, 25088), dtype=np.float32)
+        for i in range(batch_num):
+            img_list = []
+            for j in range(BATCH_SIZE):
+                # logging.debug('Batch No. {0}, image No. {1}'.format(i, j))
+                idx = i * BATCH_SIZE + j
+
+                file = file_list[idx]
+                img = imread(os.path.join(IMAGE_DIR, file), mode='RGB')
+                img_list.append(img)
+
+                filename = file_list[i * BATCH_SIZE + j].split('.')[0]
+                bbx = np.array(np.array(bbx_dict[filename])).reshape(1, -1)
+                bbx_array = np.append(bbx_array, bbx, axis=0)
+
+            feature = sess.run(vgg.middle, feed_dict={vgg.imgs: img_list})
+            dim = feature.shape
+            feature = np.reshape(feature, (dim[0], dim[1] * dim[2] * dim[3]))
+            feature_array = np.append(feature_array, feature, axis=0)
+
+            logging.debug('Reading batch No. {}'.format(i))
+
+
+    logging.info('Bounding box array shape: {}'.format(bbx_array.shape))
+    logging.info('Feature array shape: {}'.format(feature_array.shape))
     bbx_array.tofile('bbx_array.bin')
     feature_array.tofile('feature_array.bin')

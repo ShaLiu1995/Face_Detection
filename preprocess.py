@@ -11,7 +11,6 @@ from scipy.misc import imread, imresize, imsave
 import os
 import logging
 import json
-import random
 import cv2
 import shutil
 
@@ -33,7 +32,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
 
     TRAIN_DIR = os.path.join('WIDER_train', 'images')
-    NEW_IMG_DIR = 'resized_img_shuffled'
+    NEW_IMG_DIR = 'resized_img_new'
     LABEL_DIR = 'wider_face_split'
     LTRAIN_FILE = 'wider_face_train.mat'
     LVALID_FILE = 'wider_face_val.mat'
@@ -50,10 +49,7 @@ if __name__ == '__main__':
     ltrain_bbx_list = ltrain_mat['face_bbx_list']
     ltrain_event_list = ltrain_mat['event_list']
     ltrain_file_list = ltrain_mat['file_list']
-
-    bbx_path_dict = {}
-    bbx_idx_dict = {}
-    img_path_list = []
+    bbx_dict = {}
 
     for i in range(EVENT_NUM):
         event = ltrain_event_list[i][0][0]
@@ -64,36 +60,27 @@ if __name__ == '__main__':
                 continue
             filename = ltrain_file_list[i][0][j][0][0] + EXTENSION
             img_path = os.path.join(TRAIN_DIR, event, filename)
-            img_path_list.append(img_path)
-            bbx_path_dict[img_path] = bbx
+            img = imread(img_path, mode='RGB')
 
-    random.shuffle(img_path_list)
-    for j in range(len(img_path_list)):
-        img_path = img_path_list[j]
-        img = imread(img_path, mode='RGB')
-        bbx = bbx_path_dict[img_path]
+            # Plot bbx with original image
+            # cv2.rectangle(img, (bbx[0][0][0], bbx[0][0][1]),
+            #               (bbx[0][0][0] + bbx[0][0][2], bbx[0][0][1] + bbx[0][0][3]),
+            #           (255, 0, 0), 2)
+            # imsave(os.path.join(NEW_IMG_DIR, filename + '.jpg'), img)
 
-        # Plot bbx with original image
-        # cv2.rectangle(img, (bbx[0][0][0], bbx[0][0][1]),
-        #               (bbx[0][0][0] + bbx[0][0][2], bbx[0][0][1] + bbx[0][0][3]),
-        #           (255, 0, 0), 2)
-        # imsave(os.path.join(NEW_IMG_DIR, filename + '.jpg'), img)
+            new_bbx = resize_bbx(img, bbx)
+            new_img = imresize(img, (224, 224))
 
-        new_bbx = resize_bbx(img, bbx)
-        new_img = imresize(img, (224, 224))
+            # cv2.rectangle(new_img, (new_bbx[0], new_bbx[1]),
+            #               (new_bbx[0] + new_bbx[2], new_bbx[1] + new_bbx[3]), (255, 0, 0), 2)
+            imsave(os.path.join(NEW_IMG_DIR, filename), new_img)
+            bbx_dict[filename] = new_bbx
 
-        # cv2.rectangle(new_img, (new_bbx[0], new_bbx[1]),
-        #               (new_bbx[0] + new_bbx[2], new_bbx[1] + new_bbx[3]), (255, 0, 0), 2)
+            logging.debug('Image Size: {}\n'.format(img.shape))
+            logging.debug('Path: {}'.format(img_path))
+            logging.debug('BBox: {}'.format(str(bbx)))
 
-        filename = str(j).zfill(5) + EXTENSION
-        imsave(os.path.join(NEW_IMG_DIR, filename), new_img)
-        bbx_idx_dict[filename] = new_bbx
-
-        logging.debug('Image Size: {}\n'.format(img.shape))
-        logging.debug('Path: {}'.format(img_path))
-        logging.debug('BBox: {}'.format(str(new_bbx)))
-
-    print(len(bbx_idx_dict))
-    with open('bbx_idx_dict.json', 'w') as fp:
-        json.dump(bbx_idx_dict, fp)
+    print(len(bbx_dict))
+    with open('bbx_dict.json', 'w') as fp:
+        json.dump(bbx_dict, fp)
 

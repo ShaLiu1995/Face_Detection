@@ -1,11 +1,11 @@
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 import os
 from scipy.misc import imread, imresize, imsave
 from vgg16 import vgg16
-from train_fc import final_fc, evaluate_bbx, draw_bbx
-
-STD_SIZE = 224
+from train_fc_regression import final_fc
+from eval_util import evaluate_test_set, draw_testing_result
 
 
 def generate_feature(path):
@@ -13,10 +13,10 @@ def generate_feature(path):
         imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
         vgg = vgg16(imgs, 'vgg16_weights.npz', sess)
 
-        print(file)
+        print('Testing file: {}'.format(path))
         img = imread(path, mode='RGB')
-        print(img.shape)
-        img = imresize(img, (STD_SIZE, STD_SIZE))
+        print('Testing file shape: {}'.format(img.shape))
+        img = imresize(img, (224, 224))
 
         feature = sess.run(vgg.middle, feed_dict={vgg.imgs: [img]})
         dim = feature.shape
@@ -35,10 +35,13 @@ if __name__ == '__main__':
 
     test_data = generate_feature(old_path)
     model = final_fc()
-    model.load_weights(os.path.join('saved_model', 'fc_model'))
+    model.load_weights(os.path.join('saved_model', 'fc_regression'))
 
     bbx = model.predict(test_data)[0]
-    print(bbx)
+    print('Bounding box is {}'.format(bbx))
     path = os.path.join(folder, file)
-    draw_bbx(old_path, new_path, bbx)
+    img = draw_testing_result(old_path, new_path, bbx)
+    plt.imshow(img)
+    plt.show()
+    
 
