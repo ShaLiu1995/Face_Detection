@@ -11,22 +11,25 @@ from vgg16 import vgg16
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    image_dir_list = ['resized_img_val_easy', 'resized_img_val_hard']
+#     image_dir_list = ['resized_img_shuffled', 
+#                       'resized_img_shuffled_ud', 
+#                       'resized_img_shuffled_lr',
+#                       'resized_img_shuffled_udlr']
+    image_dir_list = ['resized_img_test_easy']
     BATCH_SIZE = 50
 
-    with open('bbx_val_dict.json') as json_data:
+    with open(os.path.join('json_files', 'bbx_test_dict.json')) as json_data:
         bbx_dict = json.load(json_data)
 
     with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
         imgs = tf.placeholder(tf.float32, [None, 224, 224, 3])
         vgg = vgg16(imgs, os.path.join('saved_model', 'vgg16_weights.npz'), sess)
-     
-        for k in range(len(image_dir_list)):
-            
-            bbx_array = np.empty((0, 4), dtype=np.int64)
-            feature_array = np.empty((0, 25088), dtype=np.float32)
+
+        bbx_array = np.empty((0, 4), dtype=np.int64)
+        feature_array = np.empty((0, 25088), dtype=np.float32)
         
-            image_dir = image_dir_list[k] 
+        for k in range(len(image_dir_list)):
+            image_dir = image_dir_list[k]        
             file_list = os.listdir(image_dir)
             file_num = len(file_list)
             batch_num = int(file_num / BATCH_SIZE)
@@ -51,8 +54,7 @@ if __name__ == '__main__':
                 feature = feature.reshape(feature.shape[0], -1)
                 feature_array = np.append(feature_array, feature, axis=0)
 
-            print('Bounding box array shape: {}'.format(bbx_array.shape))
-            print('Feature array shape: {}'.format(feature_array.shape))
-            difficulty = image_dir.split('_')[-1]
-            bbx_array.tofile('bbx_array_val_{}.bin'.format(difficulty))
-            feature_array.tofile('feature_array_val_{}.bin'.format(difficulty))
+    print('Bounding box array shape: {}'.format(bbx_array.shape))
+    print('Feature array shape: {}'.format(feature_array.shape))
+    bbx_array.tofile(os.path.join('bin_files', 'bbx_array_celea.bin'))
+    feature_array.tofile(os.path.join('bin_files', 'feature_array_celea.bin'))

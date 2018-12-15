@@ -1,14 +1,8 @@
 import os
-import cv2
-import json
 from scipy.misc import imread, imsave, imresize
-
-
-with open('bbx_val_dict.json') as json_data:
-    bbx_val_dict = json.load(json_data)
-
+from bbx_util import draw_bbx
     
-def evaluate_test_set(lo, hi, bbx, image_dir):
+def evaluate_test_set(lo, hi, pred_bbx, label_bbx, image_dir):
     difficulty = image_dir.split('_')[-1]
     NEW_IMG_DIR = 'test_results_{}'.format(difficulty)
     if not os.path.isdir(NEW_IMG_DIR):
@@ -19,20 +13,11 @@ def evaluate_test_set(lo, hi, bbx, image_dir):
         file = file_list[i]
         old_path = os.path.join(image_dir, file)
         new_path = os.path.join(NEW_IMG_DIR, file)
-        draw_result(old_path, new_path, bbx[i - lo])
+        draw_result(old_path, new_path, pred_bbx[i - lo], label_bbx[i - lo])
     print('Drawing output bounding box for {} completed'.format(image_dir))
 
 
-def draw_bbx(img, pred_bbx, label_bbx):
-    new_img = img.copy()
-    cv2.rectangle(new_img, (pred_bbx[0], pred_bbx[1]),
-                  (pred_bbx[0] + pred_bbx[2], pred_bbx[1] + pred_bbx[3]), (255, 0, 0), 2)
-    cv2.rectangle(new_img, (label_bbx[0], label_bbx[1]),
-                  (label_bbx[0] + label_bbx[2], label_bbx[1] + label_bbx[3]), (0, 255, 0), 2)
-    return new_img.copy()
-
-
-def draw_result(old_path, new_path, pred_bbx):
+def draw_result(old_path, new_path, pred_bbx, label_bbx=None):
     img = imread(old_path, mode='RGB')
     h = img.shape[0]
     w = img.shape[1]
@@ -40,7 +25,6 @@ def draw_result(old_path, new_path, pred_bbx):
         img = imresize(img, (224, 224))
         
     filename = old_path.split(os.sep)[-1]
-    label_bbx = bbx_val_dict[filename]
     img = draw_bbx(img, pred_bbx, label_bbx)
         
     if w != 224 or h != 224:

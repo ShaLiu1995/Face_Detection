@@ -1,3 +1,4 @@
+
 import tensorflow as tf
 import numpy as np
 import os
@@ -11,10 +12,11 @@ from vgg16 import vgg16
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    image_dir_list = ['resized_img_val_easy', 'resized_img_val_hard']
+    image_dir_list = ['resized_img_test_easy']
     BATCH_SIZE = 50
+    TEST_SIZE = 3000
 
-    with open('bbx_val_dict.json') as json_data:
+    with open(os.path.join('json_files', 'bbx_test_dict.json')) as json_data:
         bbx_dict = json.load(json_data)
 
     with tf.Session(config=tf.ConfigProto(log_device_placement=True)) as sess:
@@ -27,7 +29,7 @@ if __name__ == '__main__':
             feature_array = np.empty((0, 25088), dtype=np.float32)
         
             image_dir = image_dir_list[k] 
-            file_list = os.listdir(image_dir)
+            file_list = os.listdir(image_dir)[:TEST_SIZE]
             file_num = len(file_list)
             batch_num = int(file_num / BATCH_SIZE)
             print('{0} image(s), {1} batch(es)'.format(file_num, batch_num))
@@ -53,6 +55,6 @@ if __name__ == '__main__':
 
             print('Bounding box array shape: {}'.format(bbx_array.shape))
             print('Feature array shape: {}'.format(feature_array.shape))
-            difficulty = image_dir.split('_')[-1]
-            bbx_array.tofile('bbx_array_val_{}.bin'.format(difficulty))
-            feature_array.tofile('feature_array_val_{}.bin'.format(difficulty))
+              
+            bbx_array.tofile(os.path.join('bin_files', 'bbx_array_test_easy.bin'))
+            feature_array.tofile(os.path.join('bin_files', 'feature_array_test_easy.bin'))

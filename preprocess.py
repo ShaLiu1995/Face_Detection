@@ -11,21 +11,9 @@ from scipy.misc import imread, imresize, imsave
 import os
 import logging
 import json
-import cv2
-import shutil
+from bbx_util import resize_bbx
 
 EVENT_NUM = 61
-
-
-def resize_bbx(img, bbox):
-    height = img.shape[0]
-    width = img.shape[1]
-    new_bbox = [0] * 4
-    new_bbox[0] = int(224 * bbox[0][0][0] / width)
-    new_bbox[1] = int(224 * bbox[0][0][1] / height)
-    new_bbox[2] = int(224 * bbox[0][0][2] / width)
-    new_bbox[3] = int(224 * bbox[0][0][3] / height)
-    return new_bbox
 
 
 if __name__ == '__main__':
@@ -68,7 +56,7 @@ if __name__ == '__main__':
             #           (255, 0, 0), 2)
             # imsave(os.path.join(NEW_IMG_DIR, filename + '.jpg'), img)
 
-            new_bbx = resize_bbx(img, bbx)
+            new_bbx = resize_bbx(img, bbx[0][0])
             new_img = imresize(img, (224, 224))
 
             # cv2.rectangle(new_img, (new_bbx[0], new_bbx[1]),
